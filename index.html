@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>企業流程健診工具 · Process Diagnosis AI</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --surface: #161a20;
+    --surface2: #1e242c;
+    --border: #2a3040;
+    --accent: #e8d5a3;
+    --accent2: #7eb8a4;
+    --text: #e2e8f0;
+    --text-dim: #7a8799;
+    --text-muted: #4a5568;
+    --danger: #e07070;
+    --success: #7eb8a4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,213,163,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,213,163,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* Header */
+  header {
+    padding: 48px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+
+  .header-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    opacity: 0.8;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .header-desc {
+    font-size: 15px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    max-width: 540px;
+  }
+
+  /* API Key section */
+  .api-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .api-section label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .api-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .api-input:focus { border-color: var(--accent); }
+  .api-input::placeholder { color: var(--text-muted); }
+
+  .api-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* Form */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px;
+    margin-bottom: 32px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .field.full { grid-column: 1 / -1; }
+
+  .field label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .field label span {
+    color: var(--accent);
+    margin-left: 4px;
+  }
+
+  .field input, .field select, .field textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    resize: none;
+  }
+
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-color: var(--accent);
+    background: #131720;
+  }
+
+  .field input::placeholder,
+  .field textarea::placeholder { color: var(--text-muted); }
+
+  .field select {
+    cursor: pointer;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8799' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  .field select option { background: var(--surface2); }
+
+  .field textarea { line-height: 1.6; }
+
+  /* Char count */
+  .char-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Submit button */
+  .btn-analyze {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .btn-analyze:hover { background: #f0e0b4; transform: translateY(-1px); }
+  .btn-analyze:active { transform: translateY(0); }
+  .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-icon { font-size: 18px; }
+
+  /* Loading */
+  .loading-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    display: none;
+  }
+
+  .loading-bar.active { display: block; }
+
+  .loading-bar::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scan 1.4s ease-in-out infinite;
+  }
+
+  @keyframes scan {
+    0% { transform: translateX(-200%); }
+    100% { transform: translateX(400%); }
+  }
+
+  /* Results */
+  .results {
+    display: none;
+    flex-direction: column;
+    gap: 20px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .results.visible { display: flex; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .result-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .tag-red { background: rgba(224,112,112,0.15); color: var(--danger); }
+  .tag-green { background: rgba(126,184,164,0.15); color: var(--success); }
+  .tag-gold { background: rgba(232,213,163,0.15); color: var(--accent); }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .result-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+  }
+
+  .result-card.pain::before { background: var(--danger); }
+  .result-card.feasibility::before { background: var(--success); }
+  .result-card.action::before { background: var(--accent); }
+
+  .result-card h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .result-body {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #c0cbd8;
+    white-space: pre-wrap;
+  }
+
+  /* Score badge */
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .score-high { background: rgba(126,184,164,0.15); color: var(--success); border: 1px solid rgba(126,184,164,0.3); }
+  .score-mid { background: rgba(232,213,163,0.15); color: var(--accent); border: 1px solid rgba(232,213,163,0.3); }
+  .score-low { background: rgba(224,112,112,0.15); color: var(--danger); border: 1px solid rgba(224,112,112,0.3); }
+
+  /* Footer */
+  .footer-note {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: gap;
+  }
+
+  .footer-note p {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .footer-note a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Error */
+  .error-msg {
+    background: rgba(224,112,112,0.1);
+    border: 1px solid rgba(224,112,112,0.3);
+    color: var(--danger);
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+    margin-bottom: 16px;
+  }
+
+  .error-msg.visible { display: block; }
+
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-card { padding: 24px 20px; }
+    .api-section { flex-direction: column; align-items: flex-start; }
+    .result-card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-tag">// AI-Powered · Process Diagnosis Tool v1.0</div>
+    <h1>企業流程<em>健診</em>工具</h1>
+    <p class="header-desc">輸入你的部門資訊與流程描述，AI 自動診斷痛點、評估自動化可行性，並給出優先改善建議。</p>
+  </header>
+
+  <!-- API Key -->
+  <div class="api-section">
+    <label>API Key</label>
+    <input type="password" class="api-input" id="apiKey" placeholder="sk-ant-api03-..." />
+    <span class="api-note">🔒 僅在瀏覽器本地使用</span>
+  </div>
+
+  <!-- Form -->
+  <div class="form-card">
+    <div class="form-grid">
+      <div class="field">
+        <label>部門名稱 <span>*</span></label>
+        <input type="text" id="dept" placeholder="例：客服部門、財務部門、採購部門" />
+      </div>
+      <div class="field">
+        <label>公司規模</label>
+        <select id="scale">
+          <option value="">請選擇</option>
+          <option value="10人以下">10 人以下</option>
+          <option value="10–50人">10–50 人</option>
+          <option value="50–200人">50–200 人</option>
+          <option value="200人以上">200 人以上</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label>目前的工作流程描述 <span>*</span></label>
+        <textarea id="workflow" rows="5" placeholder="請描述目前這個部門的主要工作流程，例如：每個月底財務部門需要從三個不同系統手動匯出數據，整合成一份 Excel 報表，再由主管審核後寄送給各部門主管，整個過程需要 2–3 天..."></textarea>
+        <div class="char-hint" id="wfCount">0 / 500</div>
+      </div>
+      <div class="field full">
+        <label>目前遇到的主要問題 <span>*</span></label>
+        <textarea id="problems" rows="4" placeholder="例如：耗費大量人工時間、容易出錯、資訊傳遞不及時、跨部門溝通困難、無法追蹤進度..."></textarea>
+        <div class="char-hint" id="pbCount">0 / 300</div>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+    <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">
+      <span class="btn-icon">⟳</span>
+      <span>開始 AI 流程健診</span>
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-bar" id="loadingBar"></div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+
+    <div class="result-card pain">
+      <div class="result-header">
+        <h3>🔍 痛點診斷</h3>
+        <span class="result-tag tag-red" id="painCount"></span>
+      </div>
+      <div class="result-body" id="painResult"></div>
+    </div>
+
+    <div class="result-card feasibility">
+      <div class="result-header">
+        <h3>⚡ AI 自動化可行性評估</h3>
+        <span class="score-badge" id="scoreBadge"></span>
+      </div>
+      <div class="result-body" id="feasResult"></div>
+    </div>
+
+    <div class="result-card action">
+      <div class="result-header">
+        <h3>📋 優先改善行動建議</h3>
+        <span class="result-tag tag-gold">Quick Wins First</span>
+      </div>
+      <div class="result-body" id="actionResult"></div>
+    </div>
+
+  </div>
+
+  <div class="footer-note">
+    <p>// Built with Claude API · ethanlinbiz.github.io</p>
+    <a href="https://ethanlinbiz.github.io/Carbon-Report/" target="_blank">→ 另一個作品：碳盤查 AI 助手</a>
+  </div>
+
+</div>
+
+<script>
+// Char counters
+document.getElementById('workflow').addEventListener('input', function() {
+  document.getElementById('wfCount').textContent = this.value.length + ' / 500';
+});
+document.getElementById('problems').addEventListener('input', function() {
+  document.getElementById('pbCount').textContent = this.value.length + ' / 300';
+});
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 5000);
+}
+
+async function analyze() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const dept = document.getElementById('dept').value.trim();
+  const scale = document.getElementById('scale').value;
+  const workflow = document.getElementById('workflow').value.trim();
+  const problems = document.getElementById('problems').value.trim();
+
+  if (!apiKey) return showError('請先輸入 Anthropic API Key');
+  if (!dept) return showError('請輸入部門名稱');
+  if (!workflow) return showError('請描述目前的工作流程');
+  if (!problems) return showError('請描述目前遇到的問題');
+
+  const btn = document.getElementById('analyzeBtn');
+  const loading = document.getElementById('loadingBar');
+  const results = document.getElementById('results');
+
+  btn.disabled = true;
+  btn.querySelector('span:last-child').textContent = 'AI 分析中...';
+  loading.classList.add('active');
+  results.classList.remove('visible');
+
+  const prompt = `你是一位資深企業流程顧問，專注於 AI 自動化應用。請分析以下企業流程情況，並以 JSON 格式回覆。
+
+【部門】${dept}
+【公司規模】${scale || '未填寫'}
+【目前流程】${workflow}
+【遇到的問題】${problems}
+
+請以下列 JSON 格式回覆，不要加任何其他文字或 markdown：
+{
+  "pain_points": "條列式診斷 3–5 個核心痛點，每點用「▸ 」開頭，說明問題本質與影響",
+  "feasibility_score": "HIGH 或 MID 或 LOW",
+  "feasibility_reason": "2–3 段說明為什麼這個流程適合或不適合 AI 自動化，包含具體的技術可行性分析",
+  "actions": "條列式列出 3–5 個優先改善行動，每點用「Step N｜」開頭，從最快見效的開始，說明具體做法與預期效益",
+  "pain_count": "數字，代表識別到幾個主要痛點"
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || `API 錯誤 ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content[0].text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+
+    // Render results
+    document.getElementById('painResult').textContent = parsed.pain_points;
+    document.getElementById('painCount').textContent = parsed.pain_count + ' 個痛點';
+
+    document.getElementById('feasResult').textContent = parsed.feasibility_reason;
+
+    const score = parsed.feasibility_score;
+    const badge = document.getElementById('scoreBadge');
+    if (score === 'HIGH') {
+      badge.textContent = '✦ 高度可行';
+      badge.className = 'score-badge score-high';
+    } else if (score === 'MID') {
+      badge.textContent = '◈ 部分可行';
+      badge.className = 'score-badge score-mid';
+    } else {
+      badge.textContent = '◇ 建議先優化流程';
+      badge.className = 'score-badge score-low';
+    }
+
+    document.getElementById('actionResult').textContent = parsed.actions;
+
+    results.classList.add('visible');
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (err) {
+    showError('分析失敗：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.querySelector('span:last-child').textContent = '開始 AI 流程健診';
+    loading.classList.remove('active');
+  }
+}
+</script>
+</body>
+</html>
